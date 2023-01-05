@@ -1,0 +1,16 @@
+.DS_Store
+
+.idea
+.eclipse
+.vscode
+
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+*.test
+*.out
+
+go.work
