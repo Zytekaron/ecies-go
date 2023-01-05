@@ -1,5 +1,5 @@
 # ecies-go
-**version:** not published yet, use commit tags
+**version:** v0.0.0
 
 ## Installation
 ```
