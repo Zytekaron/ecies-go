@@ -1,4 +1,4 @@
-module ecies-go
+module github.com/zytekaron/ecies-go
 
 go 1.19
 
