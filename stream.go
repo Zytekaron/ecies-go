@@ -11,8 +11,13 @@ import (
 	"io"
 )
 
+// StreamBufferSize is the number of bytes to process at a time.
 const StreamBufferSize = 4096
+
+// StreamIVLength is the length of the IV used in AES-CTR.
 const StreamIVLength = 16
+
+// StreamHMACLength is the length of the MAC used in HMAC-SHA512.
 const StreamHMACLength = sha512.Size
 
 var ErrInvalidMAC = errors.New("invalid mac")
@@ -55,11 +60,11 @@ func EncryptStream(in io.Reader, out io.Writer, aesKey, hmacKey []byte) error {
 	}
 
 	// Initialize AES-CTR cipher.
-	aesCipher, err := aes.NewCipher(aesKey)
+	c, err := aes.NewCipher(aesKey)
 	if err != nil {
 		return err
 	}
-	ctr := cipher.NewCTR(aesCipher, iv)
+	ctr := cipher.NewCTR(c, iv)
 
 	// Initialize HMAC-SHA512.
 	h := hmac.New(sha512.New, hmacKey)
@@ -78,6 +83,7 @@ func EncryptStream(in io.Reader, out io.Writer, aesKey, hmacKey []byte) error {
 	for {
 		// Read up to the buffer size from the input stream.
 		n, err := in.Read(buf)
+		// Propagate non-EOF errors.
 		if err != nil && err != io.EOF {
 			return err
 		}
@@ -108,6 +114,8 @@ func EncryptStream(in io.Reader, out io.Writer, aesKey, hmacKey []byte) error {
 // using AES-CTR (bit size determined by the passed AES key),
 // and uses HMAC-SHA512 with the passed key for authentication.
 func DecryptStream(in io.Reader, out io.Writer, aesKey, hmacKey []byte) error {
+	const bufSize = StreamBufferSize + StreamHMACLength
+
 	// Read IV from input stream.
 	iv := make([]byte, StreamIVLength)
 	_, err := io.ReadFull(in, iv)
@@ -130,11 +138,20 @@ func DecryptStream(in io.Reader, out io.Writer, aesKey, hmacKey []byte) error {
 
 	// Read and decrypt blocks from the input stream.
 	var mac []byte
-	buf := bufio.NewReaderSize(in, StreamBufferSize)
+	// Create a new buffered reader from the input reader.
+	// The trailing StreamHMACLength bytes are reserved
+	// for the MAC, meaning they should not be assumed to
+	// be data, in case the subsequent peek/read is empty.
+	buf := bufio.NewReaderSize(in, bufSize)
 	for {
 		// Peek ahead up to the buffer size.
-		b, err := buf.Peek(StreamBufferSize)
+		peek, err := buf.Peek(bufSize)
+		// If an error occurred, it should be propagated to
+		// the caller. If the peeked slice does not contain
+		// at least bufSize bytes, the end of reader has been
+		// reached, and the MAC should be copied and verified.
 		if err != nil {
+			// Propagate non-EOF errors.
 			if err != io.EOF {
 				return err
 			}
@@ -145,26 +162,38 @@ func DecryptStream(in io.Reader, out io.Writer, aesKey, hmacKey []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 
-			// Save the MAC for comparison later.
-			mac = b[left-StreamHMACLength : left]
+			// Save the MAC for verification later.
+			mac = peek[left-StreamHMACLength : left]
+
+			// If the amount of data remaining in the
+			// slice is equivalent to the MAC length,
+			// there is no more data to be decrypted
+			// at the beginning of the slice.
 			if left == StreamHMACLength {
 				break
 			}
 		}
 
-		// Write the current slice to HMAC.
-		slice := b[:len(b)-StreamHMACLength]
-		h.Write(slice)
+		// This slice represents the data portion,
+		// cutting off the reserved MAC portion.
+		data := peek[:len(peek)-StreamHMACLength]
 
-		// Perform encryption
-		ctr.XORKeyStream(slice, slice)
-		_, err = out.Write(slice)
+		// Write the current data portion to HMAC.
+		h.Write(data)
+
+		// Perform decryption on the data portion.
+		ctr.XORKeyStream(data, data)
+		_, err = out.Write(data)
 		if err != nil {
 			return err
 		}
 
-		// Complete the read (previously only peeked).
-		_, err = buf.Read(slice)
+		// Complete the read. This only reads data
+		// which is known to be part of the message,
+		// so if any part of the MAC was present in
+		// the peek slice, the entirety of the MAC
+		// will be available during the next peek.
+		_, err = buf.Read(data)
 		if err != nil {
 			return err
 		}
