@@ -87,7 +87,7 @@ func EncryptStream(in io.Reader, out io.Writer, aesKey, hmacKey []byte) error {
 		if n > 0 {
 			slice := buf[:n]
 			ctr.XORKeyStream(slice, slice)
-			_, err = mw.Write(slice)
+			_, err := mw.Write(slice)
 			if err != nil {
 				return err
 			}
