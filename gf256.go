@@ -46,12 +46,12 @@ var gfexp = []byte{
 	0x66, 0xb2, 0x76, 0x60, 0xda, 0xc5, 0xf3, 0xf6, 0xaa, 0xcd, 0x9a, 0xa0, 0x75, 0x54, 0x0e, 0x01,
 }
 
-// add combines two numbers in GF256.
+// add combines two numbers.
 func add(a, b byte) byte {
 	return a ^ b
 }
 
-// mul multiplies two numbers in GF256.
+// mul multiplies two numbers.
 func mul(a, b uint8) (out uint8) {
 	if a == 0 || b == 0 {
 		return 0
@@ -60,7 +60,7 @@ func mul(a, b uint8) (out uint8) {
 	return gfexp[sum%255]
 }
 
-// div divides two numbers in GF256.
+// div divides two numbers.
 func div(a, b uint8) uint8 {
 	if b == 0 {
 		panic("illegal divide by zero")

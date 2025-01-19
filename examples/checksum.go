@@ -12,7 +12,7 @@ import (
 // shares, you will get garbage output. This is an
 // example of a way you can verify that the output
 // is valid and thus enough shares were present, by
-// prepending zeros to the secret as a "checksum."
+// prepending a padded checksum of zeros to the secret.
 //
 // There's a 1/2^64 chance that things would go wrong
 // if you do it like this and then try to combine too

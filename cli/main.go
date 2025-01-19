@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,15 +13,7 @@ import (
 
 var fs = NewFlagSet()
 
-var ErrNoInput = errors.New("no input provided")
-var ErrNoOutput = errors.New("no output provided")
-
 func init() {
-	//fs.AddFlag("alpha", "a", "Alpha flag", true)
-	//fs.AddFlag("beta", "b", "Beta flag", true)
-	//fs.AddFlag("gamma", "g", "Gamma flag", false)
-	//fs.AddFlag("flag", "f", "General flag", false)
-
 	fs.AddFlag("input", "i", "Input file", true)
 	fs.AddFlag("output", "o", "Output file", true)
 	fs.AddFlag("count", "n", "Number of shares to generate in total", true)
@@ -47,9 +38,9 @@ func main() {
 	case "help":
 		help()
 	case "split":
-		err = split(args) // todo err
+		err = split(args)
 	case "combine":
-		err = combine(args) // todo err
+		err = combine(args)
 	}
 	if err != nil {
 		log.Fatalln("error in op "+command+":", err)
@@ -84,7 +75,7 @@ func split(args []string) error {
 			input = strings.NewReader(joined)
 		}
 	// input flag is -/0/stdio/stdin: use stdin
-	case "-", "0", "stdio", "stdin":
+	case "-", "0", "std", "stdio", "stdin":
 		input = os.Stdin
 	// input flag is a file name: open the file
 	default:
@@ -145,7 +136,7 @@ func combine(args []string) error {
 	outputFile := fs.ParsedArgs["output"]
 	switch outputFile {
 	// output flag is empty/-/1/stdio/stdout: use stdout
-	case "", "-", "1", "stdio", "stdout":
+	case "", "-", "1", "std", "stdio", "stdout":
 		output = os.Stdout
 	// input flag is a file name: open the file
 	default:

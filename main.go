@@ -12,7 +12,8 @@ import (
 // combine shares, the key/value pairs must match, aside
 // from omitting up to (n-k) key/value pairs. For example,
 // you cannot swap the values for shares[1] and shares[3],
-// as the key denotes x, and the value is the coefficient.
+// as the key denotes the x value used in the underlying
+// algorithm, and the value is the coefficient for that key.
 // shares[0] is not used, as this is where the secret lies.
 //
 // If your use case requires that it be possible to
